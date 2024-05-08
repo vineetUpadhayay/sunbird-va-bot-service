@@ -2,5 +2,6 @@ marqo
 sentence-transformers>=2.2.0
 python-dotenv
 langchain
+langchain-google-genai
 google-generativeai
 redis

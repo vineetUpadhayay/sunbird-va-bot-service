@@ -4,6 +4,8 @@ import time
 from langchain_community.vectorstores import Marqo
 import google.generativeai as genai 
 import marqo
+# from cache import pubsub
+from cache import faiss_search, cache_in_redis
 
 load_dotenv()
 
@@ -33,32 +35,58 @@ def get_context(docs):
 
 
 def main():
-    query = "Tell me something about garden gnomes"
 
-    print("#"*60)
+    #pubsub.run_in_thread(sleep_time=0.01)
 
-    start_time = time.time()
-    
-    docs = marqo_search(query)
+    queries = ["Tell me something about Hogwarts",
+               "Say something about Hogwarts",
+               "Tell me about Hogwarts in 20 words",
+               "Tell me something about Quiddich"]
 
-    context = get_context(docs)
+    for query in queries:
 
-    prompt = f"""Answer the question as detailed as possible from the provided context\n\n
-    Context:\n {context}?\n
-    Question: \n{query}\n
+        print("#"*80)
 
-    Answer:"""
-    
-    model = genai.GenerativeModel('gemini-pro')
+        start_time = time.time()
 
-    response = model.generate_content(prompt)
+        faiss_response = faiss_search(query)
 
-    end_time = time.time()
-    elapsed_time = end_time - start_time
+        context = ""
+        response = ""
 
-    print(f'Question: {query}')
-    print(f'answer: {response.text}')
-    print(f'Time: {elapsed_time}')
+        if faiss_response:
+            print("Cache hit")
+            if faiss_response['is_response']==0:
+                context = faiss_response['documents']
+                print("Documents found in cache \n")
+            else:
+                response= faiss_response['response']
+                print("Response found in cache \n")
+        else:
+            docs = marqo_search(query)
+            context = get_context(docs)
+            print("\nNo cache hit. Retrieved from Marqo db \n")
+
+        if context:
+            prompt = f"""Answer the question as detailed as possible from the provided context\n\n
+            Context:\n {context}?\n
+            Question: \n{query}\n
+
+            Answer:"""
+            
+            model = genai.GenerativeModel('gemini-pro')
+            response = model.generate_content(prompt)
+            response = response.text
+
+        end_time = time.time()
+        elapsed_time = end_time - start_time
+
+        print(f'Question: {query}')
+        print(f'Answer: {response[:100]}...')
+        print(f'Time: {elapsed_time}')
+
+        if not faiss_response:
+            cache_in_redis(query, response, context)
 
     
 
