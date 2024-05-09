@@ -1,0 +1,7 @@
+marqo
+sentence-transformers>=2.2.0
+python-dotenv
+langchain
+langchain_openai
+openai
+redis
