@@ -1,0 +1,15 @@
+.env
+data
+input_data
+venv/
+.DS_Store
+.idea/
+__pycache__/
+.pytest_cache
+gcp_credentials.json
+sample.env
+extraction.py
+docker-compose.yml
+.json
+*.json
+*.index
